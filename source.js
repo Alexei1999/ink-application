@@ -27,7 +27,7 @@ import Divider from 'ink-divider'
 // const Fetching = importJsx("./src/components/Fetching.js");
 // const Result = importJsx("./src/components/Result.js");
 
-const key = 'AlexeiShulzhickij2020'
+const key = 'Alexei1999'
 //number of devices
 const devices = 3
 //drive letter
@@ -521,7 +521,7 @@ const App = () => {
 
     return (
         <Box flexDirection='column'>
-            <Logo text='Lab 1' status={current} />
+            <Logo text='Auth' status={current} />
             <Timer trb={server} />
             {current == 'devices' && <Devices done={nextState} />}
             {current == 'encrypting' && (
