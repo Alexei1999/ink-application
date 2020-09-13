@@ -28,6 +28,10 @@ import Divider from 'ink-divider'
 // const Result = importJsx("./src/components/Result.js");
 
 const key = 'AlexeiShulzhickij2020'
+//number of devices
+const devices = 3
+//drive letter
+const USBletter = 'E:'
 
 const Server = (setServer) => {
     const app = require('express')()
@@ -85,18 +89,19 @@ const Server = (setServer) => {
         let database = readDatabase()
 
         if (!(token in database)) {
-            database[token] = []
-
-            let user = Object.values(database).find((user) =>
+            let user = Object.keys(database).find((user) =>
                 token.match(/.{1,10}/g).some((tkn) => user.includes(tkn))
             )
 
             if (
                 user &&
                 token.match(/.{1,10}/g).filter((str) => user.includes(str))
-                    .length > 3
+                    .length +
+                    1 >
+                    devices
             )
                 database[token] = database[user]
+            else database[token] = []
         }
 
         database[token].push(Date.now())
@@ -122,6 +127,7 @@ const Logo = ({ text, status }) => {
 
     useEffect(() => {
         setDead(false)
+        if (status === 'devices') return () => {}
         let timer = setTimeout(() => setDead(true), 10000)
         return () => clearTimeout(timer)
     }, [status])
@@ -263,7 +269,8 @@ const Devices = ({ done }) => {
 
         if (!keys['flash drive']) {
             si.blockDevices().then((data) => {
-                const serial = data.find((obj) => obj.name === 'E:')?.serial
+                const serial = data.find((obj) => obj.name === USBletter)
+                    ?.serial
                 if (!serial) errorHandler('flash drive')
                 setKeys((keys) => ({
                     ...keys,
