@@ -2,7 +2,7 @@
 process.env.FORCE_COLOR = '1'
 //
 //to compile:
-//npx babel source.js -o index.js; node ./index.js
+//npx babel index.js -o app.js; node ./app.js
 
 import React from 'react'
 import { Text, Box, render, useApp } from 'ink'
