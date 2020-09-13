@@ -1,5 +1,5 @@
 node_modules
 index.js
 package-lock.json
-yarn.lock
+yarn*
 database.json
