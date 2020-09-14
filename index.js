@@ -66,6 +66,8 @@ const Server = (setServer) => {
     app.use(bodyParser.json())
 
     app.post('/', (req, res) => {
+        setServer('fetching')
+
         const data = req.body
         const token = data
             .map((value) => {
@@ -108,17 +110,18 @@ const Server = (setServer) => {
 
         writeDatabase(database)
 
+        setServer('listen')
         res.json([token, database[token]])
     })
 
     app.use((err, req, res, next) => {
         console.log(err)
-        setServer(false)
+        setServer('error')
         res.status(204).send()
     })
 
     app.listen(port, () => {
-        setServer(true)
+        setServer('listen')
     })
 }
 
@@ -178,14 +181,32 @@ const Timer = ({ trb }) => {
     }, [])
 
     return (
-        <Divider
-            padding={6}
-            titlePadding={5}
-            title={time + ' c.'}
-            dividerColor={!trb ? 'red' : undefined}
-            dividerChar={!trb ? '!' : undefined}
-            width={30}
-        />
+        <Box flexDirection='column'>
+            {trb !== 'error' && (
+                <Box>
+                    <Box paddingLeft={6}>
+                        <Text>localhost</Text>
+                    </Box>
+                    <Box paddingLeft={12}>
+                        <Text>3000</Text>
+                    </Box>
+                </Box>
+            )}
+            <Divider
+                padding={6}
+                titlePadding={4}
+                title={time + ' c.'}
+                dividerColor={
+                    trb === 'error'
+                        ? 'red'
+                        : trb === 'fetching'
+                        ? 'green'
+                        : undefined
+                }
+                dividerChar={trb === 'error' ? '!' : undefined}
+                width={30}
+            />
+        </Box>
     )
 }
 
@@ -491,7 +512,7 @@ const Result = ({ data }) => {
 }
 
 const App = () => {
-    const [server, setServer] = useState(false)
+    const [server, setServer] = useState(null)
     const [current, setStatus] = useState(null)
     const [stack, setStack] = useState([
         'devices',
