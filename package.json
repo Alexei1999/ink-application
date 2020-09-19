@@ -15,7 +15,7 @@
 	"dependencies": {
 		"@babel/polyfill": "^7.11.5",
 		"body-parser": "^1.19.0",
-		"crypto": "^1.0.1",
+		"crypto-js": "^4.0.0",
 		"express": "^4.17.1",
 		"got": "^11.6.2",
 		"import-jsx": "^4.0.0",

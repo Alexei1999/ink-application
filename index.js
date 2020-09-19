@@ -9,7 +9,7 @@ import { Text, Box, render, useApp } from 'ink'
 import { useState, useEffect } from 'react'
 import si from 'systeminformation'
 import sn from 'serial-number'
-import crypto from 'crypto'
+import crypto from 'crypto-js'
 import got from 'got'
 import fs from 'fs'
 // import importJsx from "import-jsx";
@@ -27,6 +27,7 @@ import Divider from 'ink-divider'
 // const Fetching = importJsx("./src/components/Fetching.js");
 // const Result = importJsx("./src/components/Result.js");
 
+const name = 'secure01'
 const key = 'Alexei1999'
 //number of devices
 const devices = 3
@@ -34,6 +35,11 @@ const devices = 3
 const USBletter = 'E:'
 
 const Server = (setServer) => {
+    //entrys.json
+    const points = {
+        secure01: 'Alexei1999'
+    }
+
     const app = require('express')()
     const port = 3000
     const bodyParser = require('body-parser')
@@ -69,24 +75,13 @@ const Server = (setServer) => {
         setServer('fetching')
 
         const data = req.body
-        const token = data
-            .map((value) => {
-                const resizedIV = Buffer.allocUnsafe(16)
+        const key = points[data.name]
+        if (!key) return res.send(500)
 
-                const nkey = crypto.createHash('sha256').update(key).digest(),
-                    decipher = crypto.createDecipheriv(
-                        'aes256',
-                        nkey,
-                        resizedIV
-                    )
-                let msg = []
-
-                msg.push(decipher.update(value, 'hex', 'binary'))
-                msg.push(decipher.final('binary'))
-
-                return msg.join('').substr(-10)
-            })
-            .join('')
+        const token = crypto.AES.decrypt(
+            data.key,
+            crypto.SHA256(key).toString()
+        ).toString()
 
         let database = readDatabase()
 
@@ -103,15 +98,21 @@ const Server = (setServer) => {
                     devices
             )
                 database[token] = database[user]
-            else database[token] = []
+            else
+                database[token] = [
+                    ['white', 'blue', 'cyan', 'green', 'yellow', 'red'][
+                        Math.floor(6 * Math.random())
+                    ],
+                    ['access is allowed', 'you here', 'hello'][
+                        Math.floor(3 * Math.random())
+                    ]
+                ]
         }
-
-        database[token].push(Date.now())
 
         writeDatabase(database)
 
         setServer('listen')
-        res.json([token, database[token]])
+        res.json(database[token])
     })
 
     app.use((err, req, res, next) => {
@@ -377,10 +378,7 @@ const Encrypting = ({ done, data: keys }) => {
                     Object.fromEntries(
                         Object.entries(data).map(([key, value]) => [
                             key,
-                            crypto
-                                .createHash('sha256')
-                                .update(value)
-                                .digest('hex')
+                            crypto.SHA256(key).toString()
                         ])
                     )
                 )
@@ -389,32 +387,16 @@ const Encrypting = ({ done, data: keys }) => {
         if (current === 'encrypting')
             setTimeout(() => {
                 setData(
-                    Object.fromEntries(
-                        Object.entries(data).map(([item, value]) => {
-                            const resizedIV = Buffer.allocUnsafe(16)
-
-                            const nkey = crypto
-                                    .createHash('sha256')
-                                    .update(key)
-                                    .digest(),
-                                cipher = crypto.createCipheriv(
-                                    'aes256',
-                                    nkey,
-                                    resizedIV
-                                )
-                            let msg = []
-
-                            msg.push(cipher.update(value, 'binary', 'hex'))
-                            msg.push(cipher.final('hex'))
-
-                            return [item, msg.join('')]
-                        })
-                    )
+                    crypto.AES.encrypt(
+                        Object.values(data)
+                            .map((str) => str.substr(-10))
+                            .join(''),
+                        crypto.SHA256(key).toString()
+                    ).toString()
                 )
                 nextState()
             }, 500)
-        if (current === 'completed')
-            setTimeout(() => done(Object.values(data)), 1000)
+        if (current === 'completed') setTimeout(() => done(data), 1000)
     }, [current])
 
     let label = null
@@ -443,20 +425,26 @@ const Encrypting = ({ done, data: keys }) => {
                 </Text>
                 <Text color={color}> {label}</Text>
             </Box>
-            {Object.entries(data).map(([key, value]) => (
-                <Device
-                    key={key}
-                    device={key}
-                    result={value}
-                    simple
-                    textColor={color}
-                />
-            ))}
+            {typeof data !== 'string' ? (
+                Object.entries(data).map(([key, value]) => (
+                    <Device
+                        key={key}
+                        device={key}
+                        result={value}
+                        simple
+                        textColor={color}
+                    />
+                ))
+            ) : (
+                <Text>
+                    data: <Text color={color}>{data}</Text>
+                </Text>
+            )}
         </Box>
     )
 }
 
-const Fetching = ({ done, data: keys }) => {
+const Fetching = ({ done, data: key }) => {
     const [color, setColor] = useState('blue')
 
     useEffect(() => {
@@ -465,7 +453,7 @@ const Fetching = ({ done, data: keys }) => {
             () =>
                 got
                     .post('http://localhost:3000/', {
-                        json: keys,
+                        json: { key, name },
                         responseType: 'json'
                     })
                     .then(({ body }) => {
@@ -487,26 +475,20 @@ const Fetching = ({ done, data: keys }) => {
 }
 
 const Result = ({ data }) => {
-    const [token, items] = data
+    let [color, text] = data
 
     return (
         <Box flexDirection='column'>
             <Text>
                 user <Text color='red'>data</Text>
             </Text>
-            <Text>
-                name: <Text color='yellow'>{token}</Text>
-            </Text>
-            <Text>data:</Text>
-            {items.map((stmp, i) => (
-                <Box key={stmp}>
-                    <Box width={3}>
-                        <Text>{i}</Text>
-                    </Box>
-                    <Text>-{'>'} </Text>
-                    <Text color='blue'>{new Date(stmp).toISOString()}</Text>
-                </Box>
-            ))}
+            <Box
+                borderStyle='singleDouble'
+                width='20px'
+                justifyContent='center'
+            >
+                <Text color={color}>{text}</Text>
+            </Box>
         </Box>
     )
 }
