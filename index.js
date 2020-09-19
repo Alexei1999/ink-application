@@ -103,10 +103,15 @@ const Server = (setServer) => {
                     ['white', 'blue', 'cyan', 'green', 'yellow', 'red'][
                         Math.floor(6 * Math.random())
                     ],
-                    ['access is allowed', 'you here', 'hello'][
+                    ['access allowed', 'access granted', 'hello'][
                         Math.floor(3 * Math.random())
                     ]
-                ]
+                ].map((str) =>
+                    crypto.AES.encrypt(
+                        str,
+                        crypto.SHA256(key).toString()
+                    ).toString()
+                )
         }
 
         writeDatabase(database)
@@ -444,7 +449,7 @@ const Encrypting = ({ done, data: keys }) => {
     )
 }
 
-const Fetching = ({ done, data: key }) => {
+const Fetching = ({ done, data }) => {
     const [color, setColor] = useState('blue')
 
     useEffect(() => {
@@ -453,12 +458,23 @@ const Fetching = ({ done, data: key }) => {
             () =>
                 got
                     .post('http://localhost:3000/', {
-                        json: { key, name },
+                        json: { key: data, name },
                         responseType: 'json'
                     })
                     .then(({ body }) => {
                         setColor('green')
-                        setTimeout(() => done(body), 2000)
+                        setTimeout(
+                            () =>
+                                done(
+                                    body.map((str) =>
+                                        crypto.AES.decrypt(
+                                            str,
+                                            crypto.SHA256(key).toString()
+                                        ).toString(crypto.enc.Utf8)
+                                    )
+                                ),
+                            2000
+                        )
                     }),
             2000
         )
